@@ -1,10 +1,10 @@
 package com.example.myapplication;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,6 +19,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.example.myapplication.Post;
+import com.example.myapplication.R;
 import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseFile;
@@ -29,55 +31,62 @@ import com.parse.SaveCallback;
 import java.io.File;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
 
-    public static final String TAG = "MainActivity";
-    public static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 42;
-    private EditText etDescription;
-    private Button btnCaptureImage;
-    private ImageView ivPostImage;
-    private Button btnSubmit;
-    private File photoFile;
+
+public class MainActivity extends AppCompatActivity {
+    String TAG = "MainActivity";
+    public final static int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 1034;
     public String photoFileName = "photo.jpg";
+    File photoFile;
+    Button SumbitB;
+    Button ButtonTakePic;
+    EditText Description;
+    ImageView PostImage;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        etDescription = findViewById(R.id.etDescription);
-        btnCaptureImage = findViewById(R.id.btnCaptureImage);
-        ivPostImage = findViewById(R.id.ivPostImage);
-        btnSubmit = findViewById(R.id.btnSubmit);
+        SumbitB = findViewById(R.id.btnSubmit);
+        ButtonTakePic = findViewById(R.id.btnCaptureImage);
+        Description = findViewById(R.id.etDescription);
+        PostImage = findViewById(R.id.ivPostImage);
 
-        btnCaptureImage.setOnClickListener(new View.OnClickListener() {
+        //queryposts();
+
+        ButtonTakePic.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
                 LaunchCamera();
+
             }
         });
 
-        //   queryPost();
-        btnSubmit.setOnClickListener(new View.OnClickListener() {
+
+        SumbitB.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                String description = etDescription.getText().toString();
-                if (description.isEmpty()) {
-                    Toast.makeText(MainActivity.this, "Description cannot be empty", Toast.LENGTH_SHORT);
+            public void onClick(View v) {
+                String description = Description.getText().toString();
+
+                if (description.isEmpty()){
+                    Toast.makeText(MainActivity.this, "can't be empty",Toast.LENGTH_LONG).show();
                     return;
                 }
-                if (photoFile == null || ivPostImage.getDrawable() == null) {
-                    Toast.makeText(MainActivity.this, "There is no image", Toast.LENGTH_SHORT).show();
+                if(photoFile== null||PostImage.getDrawable()== null){
+                    Toast.makeText(MainActivity.this,"ERROR PICTURE", Toast.LENGTH_LONG).show();
                     return;
                 }
                 ParseUser currentUser = ParseUser.getCurrentUser();
-                savePost(description, currentUser, photoFile);
+                savePost(description,currentUser,photoFile);
             }
         });
-
     }
 
     private void LaunchCamera() {
+
         // create Intent to take a picture and return control to the calling application
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Create a File reference for future access
@@ -97,23 +106,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    ActivityResultLauncher<Intent> cameraResultLauncher;
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-
-                // Load the image located at photoUri into selectedImage
-                Bitmap takenImage = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-
-                // Load the selected image into a preview
-                ivPostImage.setImageBitmap(takenImage);
-            } else { // Result Failure
-                Toast.makeText(this, "Picture was not taken", Toast.LENGTH_SHORT).show();
+        if(requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE){
+            if(resultCode == RESULT_OK){
+                Bitmap Takemap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
+                PostImage.setImageBitmap(Takemap);
             }
-
         }
-
     }
 
     // Returns the File for a photo stored on disk given the fileName
@@ -129,9 +132,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Return the file target for the photo based on filename
-        return new File(mediaStorageDir.getPath() + File.separator + fileName);
+        File file = new File(mediaStorageDir.getPath() + File.separator + fileName);
 
-
+        return file;
     }
 
 
@@ -144,30 +147,15 @@ public class MainActivity extends AppCompatActivity {
         post.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
-                if (e != null ) {
-                    Log.e(TAG, "Error  while saving", e);
-                    Toast.makeText(MainActivity.this, "Error while using", Toast.LENGTH_SHORT).show();
+                if(e!= null){
+                    Log.e(TAG, "error while save", e);
+                    Toast.makeText(MainActivity.this,"error save", Toast.LENGTH_LONG).show();
                 }
-                Log.i(TAG, "Post save was successful!!");
-                etDescription.setText("");
-                ivPostImage.setImageResource(0);
+                Log.i(TAG,"Save post");
+                Description.setText("");
+                PostImage.setImageResource(0);
             }
         });
     }
 
-    private void queryPost() {
-        ParseQuery<Post> query = ParseQuery.getQuery(Post.class);
-        query.findInBackground(new FindCallback<Post>() {
-            @Override
-            public void done(List<Post> posts, ParseException e) {
-                if (e != null) {
-                    Log.e(TAG, "Issue with getting posts", e);
-                    return;
-                }
-                for (Post post : posts) {
-                    Log.i(TAG, "Post: " + post.getDescription + ", username: " + post.getUser().getUsername());
-                }
-            }
-        });
-    }
 }
